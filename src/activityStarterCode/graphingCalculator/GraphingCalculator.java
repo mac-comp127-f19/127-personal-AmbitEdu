@@ -3,6 +3,8 @@ package activityStarterCode.graphingCalculator;
 import comp127graphics.CanvasWindow;
 import comp127graphics.Line;
 import comp127graphics.Point;
+import comp127graphics.events.ModifierKey;
+import comp127graphics.ui.Button;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -16,6 +18,10 @@ public class GraphingCalculator {
     private double xmin, xmax, step;  // computed from origin + scale + size
     private double animationParameter;
     private Line xaxis, yaxis;
+    private Button zoomIn, zoomOut;
+    private boolean animating;
+    private double animationSpeed;
+    private double animationSpeedDefault;
 
     /**
      * Creates a new graphing calculator with its own window.
@@ -35,10 +41,44 @@ public class GraphingCalculator {
 
         coordinatesChanged();
 
+        animating = true;
+        animationSpeedDefault = 0.01;
+        animationSpeed = animationSpeedDefault;
+
         canvas.animate(() -> {
-            setAnimationParameter(
-                getAnimationParameter() + 0.01);
-            System.out.println(getAnimationParameter()); });
+            if(animating) {
+                setAnimationParameter(getAnimationParameter() + animationSpeed);
+                System.out.println(getAnimationParameter());
+                animationSpeed += (animationSpeedDefault - animationSpeed) / 100;
+            }
+        });
+
+        zoomIn = new Button("Zoom In");
+        zoomIn.setPosition(0,0);
+        zoomIn.onClick(() -> {
+            setScale(getScale() * 1.5);
+            System.out.println(getOrigin());
+            System.out.println(canvas.getCenter());
+            setOrigin(getOrigin().subtract((getOrigin().subtract(canvas.getCenter())).scale(1.5)) );
+            System.out.println(getOrigin());
+        });
+        canvas.add(zoomIn);
+
+        zoomOut = new Button("Zoom Out");
+        zoomOut.setPosition(95, 0);
+        zoomOut.onClick(() -> setScale(getScale() / 1.5));
+        canvas.add(zoomOut);
+
+        canvas.onDrag((event) -> {
+            double xDelta = event.getDelta().getX() / width;
+            setAnimationParameter(getAnimationParameter() + xDelta);
+            if(event.getModifiers().contains(ModifierKey.SHIFT)) {
+                setOrigin(origin.add(event.getDelta()));
+            }
+            animationSpeed = (animationSpeed + xDelta) / 2;
+        } );
+        canvas.onMouseDown(event -> animating = false);
+        canvas.onMouseUp(event -> animating = false);
     }
 
     /**
